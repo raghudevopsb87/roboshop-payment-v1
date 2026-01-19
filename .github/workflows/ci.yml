@@ -6,76 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run a one-line script
-        run: echo python -m unittest discover ## We will not have echo command in real world. Since this is a test application there are not test cases built.
-
-  docker:
-    needs: test
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - name: Docker login
-        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 739561048503.dkr.ecr.us-east-1.amazonaws.com
-      - run: docker build -t 739561048503.dkr.ecr.us-east-1.amazonaws.com/payment .
-        name: Docker Build
-      - run: docker push 739561048503.dkr.ecr.us-east-1.amazonaws.com/payment
-        name: Docker push
-
-  dev-deploy:
-    needs: docker
-    runs-on: self-hosted
-    environment: dev
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: raghudevopsb87/roboshop-helm-v1
-      - name: Get kubectl config
-        run: aws eks update-kubeconfig --name dev
-      - name: Helm deploy app
-        run: helm upgrade -i payment . -f dev-project-values/payment.yml
-
-  qa-deploy:
-    needs: dev-deploy
-    runs-on: self-hosted
-    environment: qa
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: raghudevopsb87/roboshop-helm-v1
-      - name: Get kubectl config
-        run: echo aws eks update-kubeconfig --name qa
-      - name: Helm deploy app
-        run: echo helm upgrade -i payment . -f qa-project-values/payment.yml
-
-
-  uat-deploy:
-    needs: qa-deploy
-    runs-on: self-hosted
-    environment: uat
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: raghudevopsb87/roboshop-helm-v1
-      - name: Get kubectl config
-        run: echo aws eks update-kubeconfig --name uat
-      - name: Helm deploy app
-        run: echo helm upgrade -i payment . -f uat-project-values/payment.yml
-
-  prod-deploy:
-    needs: uat-deploy
-    runs-on: self-hosted
-    environment: prod
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: raghudevopsb87/roboshop-helm-v1
-      - name: Get kubectl config
-        run: echo aws eks update-kubeconfig --name prod
-      - name: Helm deploy app
-        run: echo helm upgrade -i payment . -f prod-project-values/payment.yml
-
+  ci_cd_common:
+    uses: raghudevopsb87/reusable-github-actions/.github/workflows/ci.yml@main
+    with:
+      component: payment
+      apptype: python
 
